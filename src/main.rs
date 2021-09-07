@@ -21,6 +21,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 struct Pokemon {
     id: u16,
     name: String,
+    types: Vec<String>
 }
 
 async fn get_pokemon_info(identifier: &String) -> reqwest::Result<String> {
@@ -40,6 +41,18 @@ async fn parse_pokemon_info(info: &String) -> serde_json::Result<Pokemon> {
             x.parse::<u16>().unwrap()
         },
         name:  v["name"].to_string().to_lowercase().replace("\"", ""),
+        types: {
+            let mut x: Vec<String> = Vec::new();
+            
+            x.push(titlecase(&v["types"][0]["type"]["name"].to_string()).replace("\"", ""));
+
+            if v["types"][1]["type"]["name"] != Value::Null {
+                let pre: String = "+ ".to_owned() + &v["types"][1]["type"]["name"].to_string();
+                x.push(titlecase(&pre).replace("\"", ""));
+            }
+
+            x
+        }
     };
 
     Ok(pokemon)
@@ -70,14 +83,25 @@ async fn print_pokemon(pokemon: &Pokemon, colorscript: &Vec<String>) {
                 titlecase(&pokemon.name), 
                 color::Fg(color::White), style::Italic, 
                 pokemon.id, 
-                style::Reset, color::Fg(color::Reset))
+                style::Reset, color::Fg(color::Reset)),
+
+        {
+            let mut y = String::new();
+            for x in &pokemon.types {
+                y += &format!("{} ", x);
+            }
+
+            format!("{}{}type{}", color::Fg(color::LightGreen), y, color::Fg(color::Reset))
+        }
 
         // TODO add types (possibly emojis?), weight, height and synopsis
     ];
 
+    let mut hit_counter = 0;
     for i in 0..colorscript.len() - 1 {
         if indices.contains(&i) {
-            println!("{}\t{}", colorscript[i], hit_index[0]);
+            println!("{}\t{}", colorscript[i], hit_index[hit_counter]);
+            hit_counter = hit_counter + 1;
         } else {
             println!("{}", colorscript[i]);
         }
