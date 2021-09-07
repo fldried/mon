@@ -3,6 +3,7 @@ use serde_json::Value;
 use std::fs::File;
 use std::io::prelude::*;
 use termion::{color, style};
+use titlecase::titlecase;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -59,7 +60,20 @@ async fn get_pokemon_colorscript(name: &String) -> std::io::Result<Vec<String>> 
 async fn print_pokemon(pokemon: &Pokemon, colorscript: &Vec<String>) {
     let info_start = colorscript.len() / 3;
     let indices = [info_start, info_start + 1, info_start + 3, info_start + 4, info_start + 6];
-    let hit_index = [format!("{}{}{} {}{}(#{})", style::Bold, color::Fg(color::Red), pokemon.name, color::Fg(color::White), style::Italic,pokemon.id)];
+
+    // even I don't know how this works...
+    let hit_index = 
+    [
+        // first index prints pokemon name (red, bold) with id number (white, italics)
+        format!("{}{}{} {}{}(#{}){}{}", 
+                style::Bold, color::Fg(color::Red), 
+                titlecase(&pokemon.name), 
+                color::Fg(color::White), style::Italic, 
+                pokemon.id, 
+                style::Reset, color::Fg(color::Reset))
+
+        // TODO add types (possibly emojis?), weight, height and synopsis
+    ];
 
     for i in 0..colorscript.len() - 1 {
         if indices.contains(&i) {

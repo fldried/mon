@@ -10,3 +10,4 @@ reqwest = "*"
 serde_json = "*"
 tokio = {version = "*", features = ["rt-multi-thread", "macros"]}
 termion = "*"
+titlecase = "*"
