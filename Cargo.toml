@@ -8,4 +8,5 @@ edition = "2018"
 [dependencies]
 reqwest = "*"
 serde_json = "*"
-tokio = {version = "1.11", features = ["rt-multi-thread", "macros"]}
+tokio = {version = "*", features = ["rt-multi-thread", "macros"]}
+termion = "*"

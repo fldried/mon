@@ -2,6 +2,7 @@ use std::env;
 use serde_json::Value;
 use std::fs::File;
 use std::io::prelude::*;
+use termion::{color, style};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -56,5 +57,15 @@ async fn get_pokemon_colorscript(name: &String) -> std::io::Result<Vec<String>> 
 
 // See previous TODO comment
 async fn print_pokemon(pokemon: &Pokemon, colorscript: &Vec<String>) {
-    todo!();
+    let info_start = colorscript.len() / 3;
+    let indices = [info_start, info_start + 1, info_start + 3, info_start + 4, info_start + 6];
+    let hit_index = [format!("{}{}{} {}{}(#{})", style::Bold, color::Fg(color::Red), pokemon.name, color::Fg(color::White), style::Italic,pokemon.id)];
+
+    for i in 0..colorscript.len() - 1 {
+        if indices.contains(&i) {
+            println!("{}\t{}", colorscript[i], hit_index[0]);
+        } else {
+            println!("{}", colorscript[i]);
+        }
+    }
 }
