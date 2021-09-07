@@ -1,5 +1,5 @@
 [package]
-name = "pokemon"
+name = "mon"
 version = "0.1.0"
 edition = "2018"
 
@@ -9,5 +9,5 @@ edition = "2018"
 reqwest = "*"
 serde_json = "*"
 tokio = {version = "*", features = ["rt-multi-thread", "macros"]}
-termion = "*"
+colored = "*"
 titlecase = "*"
