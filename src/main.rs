@@ -42,11 +42,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // one match should handle both requests as they use the same name
     match parse_pokemon_info(&request_text).await {
         Ok(p) => {
-            let mut pokemon = p;   
-
-            // get rid of anything after a blacklisted - tag
-            pokemon.name = args[1].split("-").collect::<Vec<&str>>()[0].to_string();
-
+            let pokemon = p;   
             let colorscript = get_pokemon_colorscript(&pokemon.name).await?;
 
             print_pokemon(&pokemon, &colorscript).await;
@@ -84,7 +80,10 @@ async fn parse_pokemon_info(info: &String) -> serde_json::Result<Pokemon> {
             x.parse::<u16>().unwrap()
         },
 
-        name:  v["name"].to_string().replace("\"", ""),
+        name: {
+            let x = v["name"].to_string().split("-").collect::<Vec<&str>>()[0].to_string();
+            x.replace("\"", "")
+        },
 
         types: {
             let mut x: Vec<String> = Vec::new();
