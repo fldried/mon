@@ -15,7 +15,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         args.push(rand::thread_rng().gen_range(0..899).to_string());
     }
 
-    let request_text = get_pokemon_info(&args[1]).await?;
+    // the replace is for when pokeapi returns something like Gourgeist-Average, just remove the second part, who cares
+    let request_text = get_pokemon_info(&args[1]).await?.replace("-Average", "");
 
     // one match should handle both requests as they use the same name
     match parse_pokemon_info(&request_text).await {
