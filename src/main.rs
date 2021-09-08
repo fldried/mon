@@ -8,7 +8,7 @@ use rand::Rng;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let name_blacklist = vec!["gourgeist"];
+    let name_blacklist = vec!["gourgeist", "eiscue", "indeedee"];
 
     let mut args: Vec<String> = env::args().collect();
     panic::set_hook(Box::new(|_info| {}));
@@ -23,6 +23,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "gourgeist" => {
                 args[1] += "-average";
             },
+            "eiscue" => {
+                args[1] += "-ice"
+            },
+            "indeedee" => {
+                args[1] += "-male"
+            }
             _ => {
                 eprintln!("Argument matched blacklist but did not match a value? Please make an issue w/ the Pokémon's name or ID.");
                 panic!();
@@ -31,12 +37,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // the replace is for when pokeapi returns something like Gourgeist-Average, just remove the second part, who cares
-    let request_text = get_pokemon_info(&args[1]).await?.to_lowercase().replace("-average", "");
+    let request_text = get_pokemon_info(&args[1]).await?.to_lowercase();
 
     // one match should handle both requests as they use the same name
     match parse_pokemon_info(&request_text).await {
         Ok(p) => {
-            let pokemon = p;
+            let mut pokemon = p;   
+
+            // get rid of anything after a blacklisted - tag
+            pokemon.name = args[1].split("-").collect::<Vec<&str>>()[0].to_string();
+
             let colorscript = get_pokemon_colorscript(&pokemon.name).await?;
 
             print_pokemon(&pokemon, &colorscript).await;
