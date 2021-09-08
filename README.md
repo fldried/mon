@@ -18,7 +18,7 @@ ___
 `mon [name/ID]` - gives you the data for specified Pokémon\
 `mon` - gives you a random Pokémon
 
-#### Help Wanted: If there is a specific Pokémon that returns a garbled mess of HTML response, please make either an issue or pull request to resolve it!
+#### There are some Pokémon that return a garbled mess of HTML response, please make an issue with the name or ID.
 ___
 
 ### Goals
