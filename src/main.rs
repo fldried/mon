@@ -8,6 +8,8 @@ use rand::Rng;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let name_blacklist = vec!["gourgeist"];
+
     let mut args: Vec<String> = env::args().collect();
     panic::set_hook(Box::new(|_info| {}));
 
@@ -15,8 +17,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         args.push(rand::thread_rng().gen_range(0..899).to_string());
     }
 
+    // this is the stupidest if statement ever, but it wants &&str so you have to pick your battles
+    if name_blacklist.contains(&&*args[1]) {
+        match &*args[1] {
+            "gourgeist" => {
+                args[1] += "-average";
+            },
+            _ => {
+                eprintln!("Argument matched blacklist but did not match a value? Please make an issue w/ the Pokémon's name or ID.");
+                panic!();
+            }
+        }
+    }
+
     // the replace is for when pokeapi returns something like Gourgeist-Average, just remove the second part, who cares
-    let request_text = get_pokemon_info(&args[1]).await?.replace("-Average", "");
+    let request_text = get_pokemon_info(&args[1]).await?.to_lowercase().replace("-average", "");
 
     // one match should handle both requests as they use the same name
     match parse_pokemon_info(&request_text).await {
@@ -59,7 +74,7 @@ async fn parse_pokemon_info(info: &String) -> serde_json::Result<Pokemon> {
             x.parse::<u16>().unwrap()
         },
 
-        name:  v["name"].to_string().to_lowercase().replace("\"", ""),
+        name:  v["name"].to_string().replace("\"", ""),
 
         types: {
             let mut x: Vec<String> = Vec::new();
