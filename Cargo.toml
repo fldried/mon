@@ -11,3 +11,4 @@ serde_json = "*"
 tokio = {version = "*", features = ["rt-multi-thread", "macros"]}
 colored = "*"
 titlecase = "*"
+rand = "*"

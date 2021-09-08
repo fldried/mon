@@ -1,20 +1,36 @@
 use std::env;
-use std::num::ParseFloatError;
+use std::panic;
 
 use serde_json::Value;
 use colored::*;
 use titlecase::titlecase;
+use rand::Rng;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let args: Vec<String> = env::args().collect();
+    let mut args: Vec<String> = env::args().collect();
+    panic::set_hook(Box::new(|_info| {}));
+
+    if args.len() == 1 {
+        args.push(rand::thread_rng().gen_range(0..899).to_string());
+    }
 
     let request_text = get_pokemon_info(&args[1]).await?;
-    let pokemon = parse_pokemon_info(&request_text).await?;
-    let colorscript = get_pokemon_colorscript(&pokemon.name).await?;
 
-    print_pokemon(&pokemon, &colorscript).await?;
+    // one match should handle both requests as they use the same name
+    match parse_pokemon_info(&request_text).await {
+        Ok(p) => {
+            let pokemon = p;
+            let colorscript = get_pokemon_colorscript(&pokemon.name).await?;
 
+            print_pokemon(&pokemon, &colorscript).await;
+        },
+        Err(_) => {
+            eprintln!("Error parsing Pokémon data, is your name/ID correct?");
+            panic!();
+        }
+    }
+    
     Ok(())
 }
 
@@ -22,8 +38,8 @@ struct Pokemon {
     id: u16,
     name: String,
     types: Vec<String>,
-    weight: String,
-    height: String,
+    weight: f64,
+    height: f64,
 }
 
 async fn get_pokemon_info(identifier: &String) -> reqwest::Result<String> {
@@ -41,26 +57,34 @@ async fn parse_pokemon_info(info: &String) -> serde_json::Result<Pokemon> {
             let x = v["id"].to_string();
             x.parse::<u16>().unwrap()
         },
+
         name:  v["name"].to_string().to_lowercase().replace("\"", ""),
+
         types: {
-            // take the JSON object that contains the types and extract the first one
             let mut x: Vec<String> = Vec::new();
             
             x.push(titlecase(&v["types"][0]["type"]["name"].to_string()).replace("\"", ""));
 
-            // if the pokemon has a second type then append + to the previous one, which eventually prints something like
-            // Grass + Poison, of course replace all hanging ""s and unneeded characters
-            if v["types"][1]["type"]["name"] != Value::Null {
-                let pre: String = "+ ".to_owned() + &v["types"][1]["type"]["name"].to_string();
+            // try to add the second pokemon's type if it has one
+            let check_double = &v["types"][1]["type"]["name"];
+
+            if *check_double != Value::Null {
+                let pre: String = "+ ".to_owned() + &check_double.to_string();
                 x.push(titlecase(&pre).replace("\"", ""));
             }
 
             x
         },
-        // hectogram to kilogram
-        weight: v["weight"].to_string(),
-        // decimeter to meter
-        height: v["height"].to_string()
+
+        weight: {
+            let x = v["weight"].to_string();
+            x.parse::<f64>().unwrap()
+        },
+
+        height: {
+            let x = v["height"].to_string();
+            x.parse::<f64>().unwrap()
+        }
     };
 
     Ok(pokemon)
@@ -76,43 +100,36 @@ async fn get_pokemon_colorscript(name: &String) -> reqwest::Result<Vec<String>> 
         vec.push(x.to_owned());
     }
 
-
     Ok(vec)
 }
 
 // See previous TODO comment
-async fn print_pokemon(pokemon: &Pokemon, colorscript: &Vec<String>) -> Result<(), ParseFloatError> {
-    let info_start = colorscript.len() / 3;
-    let indices = [info_start, info_start + 1, info_start + 3, info_start + 4]; // info_start + 6 eventually
+async fn print_pokemon(pokemon: &Pokemon, colorscript: &Vec<String>) {
+    let is = colorscript.len() / 3;
+    let indices = [is, is + 1, is + 3, is + 4]; // info_start + 6 eventually
 
-    // even I don't know how this works...
-    let hit_index = 
-    [
-        // first index prints pokemon name (red, bold) with id number (white, italics)
+    let info = [
         format!(
             "{} (#{})", 
 
             titlecase(&pokemon.name).bold().red(), 
-            (pokemon.id).to_string().italic().white()
+            pokemon.id.to_string().italic().white()
         ), 
 
-        {
-            let mut y = String::new();
-            for x in &pokemon.types {
-                y += &format!("{} ", x);
-            }
+        format!("{}", {
+                let mut y = String::new();
+                for x in &pokemon.types {
+                    y += &format!("{} ", x);
+                }
 
-            format!("{}", y.green())
-        },
+                y.green()
+            }
+        ),
 
         format!("{}", {
                 let mut s = String::from("Height: ");
 
-                let x = &pokemon.height.parse::<f64>()?;
-                let x = &(x / 10.0);
-
-                s += &format!("{}m", x);
-
+                s += &format!("{}m", &pokemon.height / 10.0);
                 s.white()
             }
         ),
@@ -120,11 +137,7 @@ async fn print_pokemon(pokemon: &Pokemon, colorscript: &Vec<String>) -> Result<(
         format!("{}", {
                 let mut s = String::from("Weight: ");
 
-                let x = &pokemon.weight.parse::<f64>()?;
-                let x = &(x / 10.0);
-
-                s += &format!("{}kg", x);
-
+                s += &format!("{}kg", &pokemon.weight / 10.0);
                 s.white()
             }
         )
@@ -132,15 +145,13 @@ async fn print_pokemon(pokemon: &Pokemon, colorscript: &Vec<String>) -> Result<(
         // TODO eventually add synopsis
     ];
 
-    let mut hit_counter = 0;
+    let mut info_counter = 0;
     for i in 0..colorscript.len() - 1 {
         if indices.contains(&i) {
-            println!("{}\t{}", colorscript[i], hit_index[hit_counter]);
-            hit_counter = hit_counter + 1;
+            println!("{}\t{}", colorscript[i], info[info_counter]);
+            info_counter += 1;
         } else {
             println!("{}", colorscript[i]);
         }
     }
-
-    Ok(())
 }

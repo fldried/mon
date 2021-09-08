@@ -395,6 +395,7 @@ name = "mon"
 version = "0.1.0"
 dependencies = [
  "colored",
+ "rand",
  "reqwest",
  "serde_json",
  "titlecase",
