@@ -6,9 +6,10 @@ use colored::*;
 use titlecase::titlecase;
 use rand::Rng;
 
+const BLACKLIST: [&'static str; 3] = ["gourgeist", "eiscue", "indeedee"];
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let name_blacklist = vec!["gourgeist", "eiscue", "indeedee"];
 
     let mut args: Vec<String> = env::args().collect();
     panic::set_hook(Box::new(|_info| {}));
@@ -18,17 +19,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // this is the stupidest if statement ever, but it wants &&str so you have to pick your battles
-    if name_blacklist.contains(&&*args[1]) {
+    if BLACKLIST.contains(&&*args[1]) {
         match &*args[1] {
-            "gourgeist" => {
-                args[1] += "-average";
-            },
-            "eiscue" => {
-                args[1] += "-ice"
-            },
-            "indeedee" => {
-                args[1] += "-male"
-            }
+            "gourgeist" => args[1] += "-average",
+            "eiscue" => args[1] += "-ice",
+            "indeedee" => args[1] += "-male",
             _ => {
                 eprintln!("Argument matched blacklist but did not match a value? Please make an issue w/ the Pokémon's name or ID.");
                 panic!();
