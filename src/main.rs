@@ -31,7 +31,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // the replace is for when pokeapi returns something like Gourgeist-Average, just remove the second part, who cares
     let request_text = get_pokemon_info(&args[1]).await?.to_lowercase();
 
     // one match should handle both requests as they use the same name
@@ -123,10 +122,10 @@ async fn get_pokemon_colorscript(name: &String) -> reqwest::Result<Vec<String>> 
     Ok(vec)
 }
 
-// See previous TODO comment
 async fn print_pokemon(pokemon: &Pokemon, colorscript: &Vec<String>) {
+    // start printing the info 1/3 of the way through the rendering of the colorscript
     let is = colorscript.len() / 3;
-    let indices = [is, is + 1, is + 3, is + 4]; // info_start + 6 eventually
+    let indices = [is, is + 1, is + 3, is + 4]; // is + 6 eventually for the synopsis
 
     let info = [
         format!(
