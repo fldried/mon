@@ -110,7 +110,7 @@ async fn parse_pokemon_info(info: &String) -> serde_json::Result<Pokemon> {
 }
 
 async fn get_pokemon_colorscript(name: &String) -> reqwest::Result<Vec<String>> {
-    let res = reqwest::get(format!("https://gitlab.com/phoneybadger/pokemon-colorscripts/-/raw/main/colorscripts/{}.txt", name)).await?;
+    let res = reqwest::get(format!("https://gitlab.com/phoneybadger/pokemon-colorscripts/-/raw/main/colorscripts/small/regular/{}.txt", name)).await?;
     let text = res.text().await?;
     let text_lines = text.lines();
 
