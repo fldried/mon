@@ -75,7 +75,8 @@ async fn parse_pokemon_info(info: &String) -> serde_json::Result<Pokemon> {
         },
 
         name: {
-            let x = v["name"].to_string().split("-").collect::<Vec<&str>>()[0].to_string();
+            let x = v["name"].to_string();
+            //let x = v["name"].to_string().split("-").collect::<Vec<&str>>()[0].to_string();
             x.replace("\"", "")
         },
 
@@ -110,7 +111,14 @@ async fn parse_pokemon_info(info: &String) -> serde_json::Result<Pokemon> {
 }
 
 async fn get_pokemon_colorscript(name: &String) -> reqwest::Result<Vec<String>> {
-    let res = reqwest::get(format!("https://gitlab.com/phoneybadger/pokemon-colorscripts/-/raw/main/colorscripts/small/regular/{}", name)).await?;
+    let name_fixed = match name.as_str() {
+        "gourgeist-average" => name.replace("-average", ""),
+        "eiscue-ice" => name.replace("-ice", ""),
+        "indeedee-male" => name.replace("-male", ""),
+        _ => name.to_string()
+    };
+
+    let res = reqwest::get(format!("https://gitlab.com/phoneybadger/pokemon-colorscripts/-/raw/main/colorscripts/small/regular/{}", name_fixed)).await?;
     let text = res.text().await?;
     let text_lines = text.lines();
 
@@ -130,8 +138,7 @@ async fn print_pokemon(pokemon: &Pokemon, colorscript: &Vec<String>) {
     let info = [
         format!(
             "{} (#{})", 
-
-            titlecase(&pokemon.name).bold().red(), 
+            titlecase(&pokemon.name.replace("-", " ")).bold().red(),
             pokemon.id.to_string().italic().white()
         ), 
 
