@@ -6,7 +6,7 @@ use colored::*;
 use titlecase::titlecase;
 use rand::Rng;
 
-const BLACKLIST: [&'static str; 4] = ["landorus", "thundurus", "tornadus", "zygarde"];
+const BLACKLIST: [&'static str; 7] = ["gourgeist", "eiscue", "indeedee", "landorus", "thundurus", "tornadus", "zygarde"];
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -142,6 +142,9 @@ async fn parse_pokemon_info(info: &String) -> serde_json::Result<Pokemon> {
 
 async fn get_pokemon_colorscript(name: &String, shiny: bool) -> reqwest::Result<Vec<String>> {
     let name_fixed = match name.as_str() {
+        "gourgeist" => identifier += "-average",
+        "eiscue" => identifier += "-ice",
+        "indeedee" => identifier += "-male",
         "landorus-incarnate" | "thundurus-incarnate" | "tornadus-incarnate" => name.replace("-incarnate", ""),
         "zygarde-50" => name.replace("-50", ""),
         _ => name.to_string()
