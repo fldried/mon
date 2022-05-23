@@ -142,9 +142,9 @@ async fn parse_pokemon_info(info: &String) -> serde_json::Result<Pokemon> {
 
 async fn get_pokemon_colorscript(name: &String, shiny: bool) -> reqwest::Result<Vec<String>> {
     let name_fixed = match name.as_str() {
-        "gourgeist" => identifier += "-average",
-        "eiscue" => identifier += "-ice",
-        "indeedee" => identifier += "-male",
+        "gourgeist-average" => name.replace("-average", ""),
+        "eiscue-ice" => name.replace("-ice", ""),
+        "indeedee-male" => name.replace("-male", ""),
         "landorus-incarnate" | "thundurus-incarnate" | "tornadus-incarnate" => name.replace("-incarnate", ""),
         "zygarde-50" => name.replace("-50", ""),
         _ => name.to_string()
@@ -157,8 +157,8 @@ async fn get_pokemon_colorscript(name: &String, shiny: bool) -> reqwest::Result<
         format!("https://gitlab.com/phoneybadger/pokemon-colorscripts/-/raw/main/colorscripts/small/regular/{}", name_fixed)
     };
 
-    let res = reqwest::get(url).await?;
 
+    let res = reqwest::get(url).await?;
     let text = res.text().await?;
     let text_lines = text.lines();
 
