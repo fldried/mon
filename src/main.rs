@@ -6,7 +6,7 @@ use colored::*;
 use titlecase::titlecase;
 use rand::Rng;
 
-const BLACKLIST: [&'static str; 3] = ["gourgeist", "eiscue", "indeedee"];
+const BLACKLIST: [&'static str; 1] = ["placeholder"];
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
