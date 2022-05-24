@@ -13,6 +13,11 @@ rustc 1.61.0 (fe5b13d68 2022-05-18)
 A simple `cargo build --release` should be enough.
 
 ___
+## Further Setup (optional)
+- Add the build path to your PATH environment variable
+- in Terminal, appending `-NoExit mon` to your Powershell Command line, or  `-cmd /K mon` to your command prompt Command line settings will greet you with a new random mon every time you launch either PowerShell or the command prompt using the terminal
+
+___
 ### Usage
 
 `mon [name/ID]` - gives you the data for specified Pokémon\
