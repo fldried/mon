@@ -7,7 +7,7 @@ ___
 Tested on:
 ```
 > rustc --version
-rustc 1.54.0 (a178d0322 2021-07-26)
+rustc 1.61.0 (fe5b13d68 2022-05-18)
 ```
 
 A simple `cargo build --release` should be enough.
@@ -23,8 +23,9 @@ ___
 
 ### Goals
 
-- Add a synopsis of the Pokémon, like Pikachu's "When several of these Pokémon gather, their electricity could build and cause lightning storms." (Maybe choose a random one from each generation it appears in?)
-- Mythic and Legendary Pokémon name highlighting
-
-___
+- [x] Add shiny variants
+- [ ] Add a synopsis of the Pokémon, like Pikachu's "When several of these Pokémon gather, their electricity could build and cause lightning storms." (Maybe choose a random one from each generation it appears in?)
+- [ ] Mythic and Legendary Pokémon name highlighting
+- [ ] Add animated sprites
+- [ ] 
 
