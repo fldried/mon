@@ -27,5 +27,4 @@ ___
 - [ ] Add a synopsis of the Pokémon, like Pikachu's "When several of these Pokémon gather, their electricity could build and cause lightning storms." (Maybe choose a random one from each generation it appears in?)
 - [ ] Mythic and Legendary Pokémon name highlighting
 - [ ] Add animated sprites
-- [ ] 
 
