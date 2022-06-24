@@ -15,7 +15,7 @@ A simple `cargo build --release` should be enough.
 ___
 ## Further Setup (optional)
 - Add the build path to your PATH environment variable
-- in Terminal, appending `-NoExit mon` to your Powershell Command line, or  `-cmd /K mon` to your command prompt Command line settings will greet you with a new random mon every time you launch either PowerShell or the command prompt using the terminal
+- in Terminal, appending `-NoExit mon` to your Powershell 5 or `-NoExit -Command "mon"` for Powershell 7 Command line, or  `-cmd /K mon` to your command prompt Command line settings will greet you with a new random mon every time you launch either PowerShell or the command prompt using the terminal
 
 ___
 ### Usage
