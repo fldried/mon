@@ -1,35 +1,47 @@
-# mon - a command line Pokédex
+# mon - A Command Line Pokédex
 
-Uses art from [pokemon-colorscripts](https://gitlab.com/phoneybadger/pokemon-colorscripts) and Pokémon data from [PokéAPI](https://pokeapi.co).
-___
+mon is a command line Pokédex tool that provides information and art for Pokémon using data from [PokéAPI](https://pokeapi.co) and art from [pokemon-colorscripts](https://gitlab.com/phoneybadger/pokemon-colorscripts). It allows users to fetch data for specific Pokémon, view random Pokémon, and even generate shiny variants. Additionally, mon provides a synopsis for each Pokémon, making the experience more immersive.
+
+## Building and Installation
+
+### Prerequisites
+
+- Rust compiler (`rustc`) version 1.78.0 or later.
+
 ### Building
 
-Tested on:
+To build mon, simply run the following command:
+
+```bash
+cargo build --release
 ```
-> rustc --version
-rustc 1.61.0 (fe5b13d68 2022-05-18)
-```
 
-A simple `cargo build --release` should be enough.
+### Further Setup (optional)
 
-___
-## Further Setup (optional)
-- Add the build path to your PATH environment variable
-- in Terminal, appending `-NoExit mon` to your Powershell 5 or `-NoExit -Command "mon"` for Powershell 7 Command line, or  `-cmd /K mon` to your command prompt Command line settings will greet you with a new random mon every time you launch either PowerShell or the command prompt using the terminal
+For convenient access, you can add the build path to your PATH environment variable. Additionally, you can configure your terminal to greet you with a random Pokémon every time you launch it.
 
-___
-### Usage
+- **PowerShell 5:** Append `-NoExit mon` to your PowerShell shortcut's target.
+- **PowerShell 7:** Append `-NoExit -Command "mon"` to your PowerShell shortcut's target.
+- **Command Prompt:** Append `-cmd /K mon` to your Command Prompt shortcut's target.
 
-`mon [name/ID]` - gives you the data for specified Pokémon\
-`mon` - gives you a random Pokémon
+## Usage
 
-#### There are some Pokémon that return a garbled mess of HTML response, please make an issue with the name or ID.
-___
+### Commands
 
-### Goals
+- `mon`: Displays information and art for a random Pokémon.
+- `mon [name/ID]`: Fetches data for the specified Pokémon by name or ID.
+- `-s` or `--shiny`: Generates the shiny variant of the Pokémon.
+- `-g` or `--gen`: Allows users to specify the generation (1 to 8) of the Pokémon to be shown.
 
-- [x] Add shiny variants
-- [ ] Add a synopsis of the Pokémon, like Pikachu's "When several of these Pokémon gather, their electricity could build and cause lightning storms." (Maybe choose a random one from each generation it appears in?)
-- [ ] Mythic and Legendary Pokémon name highlighting
-- [ ] Add animated sprites
+### Known Issues
 
+Some Pokémon may return garbled HTML responses. If you encounter such issues, please open an issue with the Pokémon's name or ID, and it will be addressed promptly.
+
+## Goals
+
+- [x] Add shiny variants.
+- [x] Provide a synopsis for each Pokémon.
+- [ ] Highlight mythic and legendary Pokémon names.
+- [ ] Integrate animated sprites.
+
+mon aims to enhance your Pokémon experience by providing convenient access to Pokémon data and artwork directly from your terminal. If you encounter any issues or have suggestions for improvements, feel free to open an issue or pull request. Enjoy exploring the world of Pokémon with mon!
