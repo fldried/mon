@@ -1,176 +1,156 @@
-use std::env;
-use std::panic;
-
-use serde_json::Value;
+use clap::Parser;
+use rand::Rng;
+use rand::seq::SliceRandom;
 use colored::*;
 use titlecase::titlecase;
-use rand::Rng;
+use textwrap::wrap;
 
-const BLACKLIST: [&'static str; 7] = ["gourgeist", "eiscue", "indeedee", "landorus", "thundurus", "tornadus", "zygarde"];
+const BASE_URL: &str = "https://pokeapi.co/api/v2";
+const COLORSCRIPT_URL: &str = "https://gitlab.com/phoneybadger/pokemon-colorscripts/-/raw/main/colorscripts/small/";
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = "A CLI tool to display Pokémon data")]
+struct Args {
+    #[arg(help = "The Pokémon to display (Pokédex number or name)")]
+    identifier: Option<String>,
 
-    let args: Vec<String> = env::args().collect();
-    // remove the first argument (the name of the program) IFF there is more than one argument
-    let args = &args[1..];
+    #[arg(short, long, help = "Displays the shiny variant of the Pokémon")]
+    shiny: bool,
 
-    //println!("ARGS: {}", args.join(" "));
-
-    panic::set_hook(Box::new(|_info| {}));
-
-    // bool shiny true if there is arg '-s'
-    let shiny = args.contains(&String::from("-s"));
-
-    //println!("SHINY: {}", shiny);
-
-    // identifier is the OTHER arg except args[0]
-    let identifier = if args.len() == 1 && !shiny || args.len() == 2 && shiny {
-        args.iter().find(|x| x != &&String::from("-s")).unwrap().to_string()
-    } else {
-        "".to_string()
-    };
-
-    //println!("IDENTIFIER: {}", identifier.green().bold());
-
-    // make identifier mutable
-    let mut identifier = identifier;
-
-    //println!("{}", identifier.green().bold());
-
-    // if identifier is empty, use random number as string
-    identifier = if identifier.is_empty() {
-        rand::thread_rng().gen_range(1..899).to_string()
-    } else {
-        identifier
-    };
-
-    println!("Generated?: {}", identifier.green().bold());
-
-    if BLACKLIST.contains(&identifier.as_str()) {
-        match &*identifier {
-            "gourgeist" => identifier += "-average",
-            "eiscue" => identifier += "-ice",
-            "indeedee" => identifier += "-male",
-            "landorus" | "thundurus" | "tornadus" => identifier += "-incarnate",
-            "zygarde" => identifier += "-50",
-            _ => {
-                eprintln!("Argument matched blacklist but did not match a value? Please make an issue w/ the Pokémon's name or ID.");
-                panic!();
-            }
-        };
-    }
-
-    println!("{}", identifier.green().bold());
-
-    let request_text = get_pokemon_info(&identifier.to_lowercase()).await?;
-
-    // one match should handle both requests as they use the same name
-    match parse_pokemon_info(&request_text).await {
-        Ok(p) => {
-            let pokemon = p;   
-            let colorscript = get_pokemon_colorscript(&pokemon.name, shiny).await?;
-
-            print_pokemon(&pokemon, &colorscript, shiny).await;
-        },
-        Err(_) => {
-            eprintln!("Error parsing Pokémon data, is your name/ID correct?");
-            panic!();
-        }
-    }
-    
-    Ok(())
+    #[arg(short, long, help = "The generation of the Pokémon to display (1 - 8)", value_name = "Generation")]
+    gen: Option<u8>,
 }
 
+#[derive(Debug)]
+struct Stat {
+    name: String,
+    value: u8,
+}
+
+#[derive(Debug)]
 struct Pokemon {
     id: u16,
     name: String,
     types: Vec<String>,
     weight: f64,
     height: f64,
+    stats: Vec<Stat>,
+    flavor_text: String, // Synopsis
 }
 
-async fn get_pokemon_info(identifier: &String) -> reqwest::Result<String> {
-    let res = reqwest::get(format!("https://pokeapi.co/api/v2/pokemon/{}", identifier)).await?;
-    let text = res.text().await?;
+fn main() {
+    let matches = Args::parse();
 
-    Ok(text)
-}
-
-async fn parse_pokemon_info(info: &String) -> serde_json::Result<Pokemon> {
-    let v: Value = serde_json::from_str(&info)?;
-
-    let pokemon = Pokemon {
-        id: {
-            let x = v["id"].to_string();
-            x.parse::<u16>().unwrap()
+    let mut rng = rand::thread_rng();
+    let input = match matches.gen {
+        Some(1) => rng.gen_range(1..=151).to_string(), // Generation 1: 151 Pokemon
+        Some(2) => rng.gen_range(152..=251).to_string(), // Generation 2: 100 Pokemon
+        Some(3) => rng.gen_range(252..=386).to_string(), // Generation 3: 135 Pokemon
+        Some(4) => rng.gen_range(387..=493).to_string(), // Generation 4: 107 Pokemon
+        Some(5) => rng.gen_range(494..=649).to_string(), // Generation 5: 156 Pokemon
+        Some(6) => rng.gen_range(650..=721).to_string(), // Generation 6: 72 Pokemon
+        Some(7) => rng.gen_range(722..=809).to_string(), // Generation 7: 88 Pokemon
+        Some(8) => rng.gen_range(810..=898).to_string(), // Generation 8: 89 Pokemon
+        _ => match matches.identifier {
+            Some(input) => input,
+            None => rng.gen_range(1..=898).to_string(), // Default: All generations
         },
+    };
 
-        name: {
-            let x = v["name"].to_string();
-            x.replace("\"", "")
-        },
+    println!();
 
-        types: {
-            let mut x: Vec<String> = Vec::new();
-            
-            x.push(titlecase(&v["types"][0]["type"]["name"].to_string()).replace("\"", ""));
-
-            // try to add the second pokemon's type if it has one
-            let check_double = &v["types"][1]["type"]["name"];
-
-            if *check_double != Value::Null {
-                x.push(titlecase(&v["types"][1]["type"]["name"].to_string()).replace("\"", ""));
+    tokio::runtime::Runtime::new().unwrap().block_on(async {
+        match fill_mon_struct(&input.to_lowercase()).await {
+            Ok(mon) => {
+                let colorscript = get_colorscript(&mon.name, matches.shiny).await.unwrap();
+                print_pokemon(&mon, &colorscript, matches.shiny).await;
+            },
+            Err(_) => {
+                eprintln!("Failed to get Pokémon data, is your name or Pokédex Number correct?");
+                return;
             }
-
-            x
-        },
-
-        weight: {
-            let x = v["weight"].to_string();
-            x.parse::<f64>().unwrap()
-        },
-
-        height: {
-            let x = v["height"].to_string();
-            x.parse::<f64>().unwrap()
         }
-    };
-
-    Ok(pokemon)
+    });
 }
 
-async fn get_pokemon_colorscript(name: &String, shiny: bool) -> reqwest::Result<Vec<String>> {
-    let name_fixed = match name.as_str() {
-        "gourgeist-average" => name.replace("-average", ""),
-        "eiscue-ice" => name.replace("-ice", ""),
-        "indeedee-male" => name.replace("-male", ""),
-        "landorus-incarnate" | "thundurus-incarnate" | "tornadus-incarnate" => name.replace("-incarnate", ""),
-        "zygarde-50" => name.replace("-50", ""),
-        _ => name.to_string()
+async fn fill_mon_struct(identifier: &str) -> Result<Pokemon, reqwest::Error> {
+    let mut mon = Pokemon {
+        id: 0,
+        name: "".to_string(),
+        types: Vec::new(),
+        weight: 0.0,
+        height: 0.0,
+        stats: Vec::new(),
+        flavor_text: "".to_string(),
     };
-
-    let url = if shiny {
-        format!("https://gitlab.com/phoneybadger/pokemon-colorscripts/-/raw/main/colorscripts/small/shiny/{}", name_fixed)
+    
+    match reqwest::get(format!("{}/pokemon-species/{}", BASE_URL, identifier)).await {
+        Ok(res) => {
+            let species_json = res.json::<serde_json::Value>().await?;
+            mon.name = species_json["varieties"][0]["pokemon"]["name"].as_str().unwrap().to_string();
+            mon.flavor_text = {
+                let flavor_text_entries = species_json["flavor_text_entries"].as_array().unwrap();
+                let mut rng = rand::thread_rng();
+                let english_flavor_texts: Vec<_> = flavor_text_entries.iter()
+                    .filter(|entry| entry["language"]["name"].as_str().unwrap() == "en")
+                    .collect();
+                let random_flavor_text = english_flavor_texts.choose(&mut rng)
+                    .and_then(|entry| entry["flavor_text"].as_str())
+                    .unwrap_or("")
+                    .replace("\n", " ");
+                random_flavor_text
+            };
+        },
+        Err(e) => {
+            eprintln!("Failed to get species data: {}", e);
+            return Err(e);
+        }
     }
-    else {
-        format!("https://gitlab.com/phoneybadger/pokemon-colorscripts/-/raw/main/colorscripts/small/regular/{}", name_fixed)
-    };
 
-
-    let res = reqwest::get(url).await?;
-    let text = res.text().await?;
-    let text_lines = text.lines();
-
-    let mut vec: Vec<String> = Vec::new();
-    for x in text_lines {
-        vec.push(x.to_owned());
+    match reqwest::get(format!("{}/pokemon/{}", BASE_URL, mon.name)).await {
+        Ok(res) => {
+            let mon_json = res.json::<serde_json::Value>().await?;
+            mon.id = mon_json["id"].as_u64().unwrap() as u16;
+            mon.types = {
+                let types_data = mon_json["types"].as_array().unwrap();
+                let mut types = Vec::new();
+            
+                for type_data in types_data {
+                    let type_name = type_data["type"]["name"].as_str().unwrap().to_string();
+                    let type_name = titlecase(&type_name);
+                    types.push(type_name);
+                }
+            
+                types
+            };
+            mon.weight = mon_json["weight"].as_f64().unwrap() / 10.0;
+            mon.height = mon_json["height"].as_f64().unwrap() / 10.0;
+            mon.stats = {
+                mon_json["stats"].as_array().unwrap().iter().map(|stat_data| {
+                    Stat {
+                        name: match stat_data["stat"]["name"].as_str().unwrap() {
+                            "hp" => "HP".to_string(),
+                            "attack" => "Atk".to_string(),
+                            "defense" => "Def".to_string(),
+                            "special-attack" => "SpA".to_string(),
+                            "special-defense" => "SpD".to_string(),
+                            "speed" => "Spe".to_string(),
+                            other => other.to_string(),
+                        },
+                        value: stat_data["base_stat"].as_u64().unwrap() as u8,
+                    }
+                }).collect::<Vec<Stat>>()
+            };
+        },
+        Err(e) => {
+            eprintln!("Failed to get Pokémon data: {}", e);
+            return Err(e);
+        }
     }
 
-    Ok(vec)
+    Ok(mon)
 }
 
-// return rgb values for each color
 async fn get_type_color(type_name: &String) -> Vec<u8> {
     match type_name.as_str() {
         "Normal" => vec![168, 167, 122],    // A8A77A
@@ -195,60 +175,107 @@ async fn get_type_color(type_name: &String) -> Vec<u8> {
     }
 }
 
-async fn print_pokemon(pokemon: &Pokemon, colorscript: &Vec<String>, shiny: bool) {
-    // start printing the info 1/3 of the way through the rendering of the colorscript
-    let is = colorscript.len() / 3;
-    let indices = [is, is + 1, is + 3, is + 4]; // is + 6 eventually for the synopsis
+async fn get_colorscript(name: &str, shiny: bool) -> Result<Vec<String>, reqwest::Error> {
+    let url = format!(
+        "{}/{}/{}",
+        COLORSCRIPT_URL,
+        if shiny { "shiny" } else { "regular" },
+        name
+    );
 
-    let info = [
-        format!(
-            "{} #{}", 
-            if shiny {titlecase(&pokemon.name.replace("-", " ")).bold().white()} else {titlecase(&pokemon.name.replace("-", " ")).bold().black()},
-            pokemon.id.to_string().italic().white()
-        ),
+    let response = reqwest::get(&url).await?;
+    if response.status().is_client_error() || response.status().is_server_error() {
+        let base_name = name.split('-').next().unwrap();
+        return Box::pin(get_colorscript(base_name, shiny)).await;
+    }
 
-        // format the types
-        // color the types according to the type's color
-        format!(
-            "{}", {
-                let mut x = String::new();
-                for (i, t) in pokemon.types.iter().enumerate() {
-                    let color = get_type_color(t).await;
-                    x += &format!("{}", t.bold().truecolor(color[0], color[1], color[2]));
-                    if i != pokemon.types.len() - 1 {
-                        x += " / ";
-                    }
-                }
-                x
-            }
-        ),
+    let response_text = response.text().await?;
 
-        format!("{}", {
-                let mut s = String::from("Height: ");
+    let lines = response_text.lines();
 
-                s += &format!("{}m", &pokemon.height / 10.0);
-                s.white()
-            }
-        ),
+    let mut vec: Vec<String> = Vec::new();
+    for line in lines {
+        vec.push(line.to_owned());
+    }
 
-        format!("{}", {
-                let mut s = String::from("Weight: ");
+    Ok(vec)
+}
 
-                s += &format!("{}kg", &pokemon.weight / 10.0);
-                s.white()
-            }
-        )
 
-        // TODO eventually add synopsis
-    ];
 
-    let mut info_counter = 0;
-    for i in 0..colorscript.len() {
-        if indices.contains(&i) {
-            println!("{}\t{}", colorscript[i], info[info_counter]);
-            info_counter += 1;
+
+async fn print_pokemon(mon: &Pokemon, colorscript: &Vec<String>, shiny: bool) {
+    let info_start_index = if colorscript.len() >= 14 {
+        (colorscript.len() - 13) / 2
+    } else {
+        0
+    };
+    let name = titlecase(&mon.name.replace("-", " "));
+    let name = if shiny { format!("✨{}✨", name.bold().cyan().blink()) } else { name.bold().white().to_string() };
+    let id = ("#".to_owned() + &mon.id.to_string()).italic().black();
+    let name_and_id = format!("{} {}", name, id);
+
+    let type_futures: Vec<_> = mon.types.iter().map(|t| get_type_color(t)).collect();
+    let type_colors: Vec<_> = futures::future::join_all(type_futures).await;
+
+    let types = mon.types.iter().enumerate().map(|(i, t)| {
+        let color = &type_colors[i];
+        let type_name = t.bold().truecolor(color[0], color[1], color[2]);
+        if i != mon.types.len() - 1 {
+            format!("{} / ", type_name)
         } else {
-            println!("{}", colorscript[i]);
+            type_name.to_string()
         }
+    }).collect::<String>();
+
+    let height = format!("{} {}m", "Height:".truecolor(128,128,128), mon.height.to_string().white());
+    let weight = format!("{} {}kg", "Weight:".truecolor(128,128,128), mon.weight.to_string().white());
+
+    let bar_length = if colorscript.len() < 13 { 8.0 } else { 16.0 };
+
+    let stats = mon.stats.iter().map(|stat| {
+        let filled_length = ((stat.value as f64) / 255.0 * bar_length).round() as usize;
+        let empty_length = (bar_length - filled_length as f64).round() as usize;
+        let mut filled_bar = "█".repeat(filled_length);
+        if filled_length >= (bar_length * 4.0 / 5.0) as usize {
+            filled_bar = filled_bar.truecolor(0, 255, 0).to_string()
+        } else if filled_length >= (bar_length * 3.0 / 5.0) as usize {
+            filled_bar = filled_bar.truecolor(0, 192, 0).to_string()
+        } else if filled_length >= (bar_length * 2.0 / 5.0) as usize {
+            filled_bar = filled_bar.truecolor(255, 192, 0).to_string()
+        } else if filled_length >= (bar_length * 1.0 / 5.0) as usize {
+            filled_bar = filled_bar.truecolor(242, 140, 40).to_string()
+        } else {
+            filled_bar = filled_bar.truecolor(255, 0, 0).to_string()
+        }
+        let empty_bar = "█".repeat(empty_length).truecolor(40, 40, 40);
+        format!("{:<3}: {:>3} {}{}", stat.name.truecolor(128,128,128), stat.value, filled_bar, empty_bar)
+    }).collect::<Vec<_>>();
+    
+
+    let mut info = vec![name_and_id, types, "".to_string(), height, weight, "".to_string()];
+
+    if colorscript.len() < 13 {
+        let mut new_stats = Vec::new();
+        for stats_chunk in stats.chunks(2) {
+            let line = stats_chunk.join("  ");
+            new_stats.push(line);
+        }
+        info.extend(new_stats);
+    } else {
+        info.extend(stats);
+    }
+
+    for (i, line) in colorscript.iter().enumerate() {
+        if i >= info_start_index && i < info_start_index + info.len() {
+            println!("{}\t{}", line, info[i - info_start_index]);
+        } else {
+            println!("{}", line);
+        }
+    }
+
+    let wrapped_synopsis = wrap(&mon.flavor_text, 55);
+    for line in wrapped_synopsis {
+        println!("{}", line);
     }
 }
