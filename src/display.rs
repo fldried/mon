@@ -56,7 +56,7 @@ impl<'a> PokemonDisplay<'a> {
 
         let name = titlecase(&self.pokemon.name.replace("-", " "));
         let name = if self.shiny { format!("✨ {} ✨", name.bold().cyan().blink()) } else { name.bold().white().to_string() };
-        let id = ("#".to_owned() + &self.pokemon.id.to_string()).italic().black();
+        let id = ("#".to_owned() + &self.pokemon.id.to_string()).italic().truecolor(128, 128, 128);
 
         let name_display = format!("{} {}", name, id);
 
@@ -77,8 +77,8 @@ impl<'a> PokemonDisplay<'a> {
             let empty_length = bar_length - filled_length;
             let color = get_stat_color(stat.value).await;
             let filled_bar = "\u{2593}".repeat(filled_length).truecolor(color[0], color[1], color[2]).bold();
-            let empty_bar = "\u{2593}".repeat(empty_length).black();
-            format!("{:<3}: {:>3} {}{}", stat.name.to_string().truecolor(128,128,128), stat.value.to_string().white(), filled_bar, empty_bar)
+            let empty_bar = "\u{2593}".repeat(empty_length).truecolor(50, 50, 50);
+            format!("{:<3}: {:>3} {}{}", stat.name.to_string().truecolor(128, 128, 128), stat.value.to_string().white(), filled_bar, empty_bar)
         })).await.into_iter().collect::<Vec<_>>();
 
         let description = format!("{}: {}", "Synopsis".truecolor(128,128,128), self.pokemon.flavor_text.replace("♀", " "));

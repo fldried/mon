@@ -63,7 +63,7 @@ impl PokemonClient {
     async fn get_pokemon(&self, identifier: &str) -> Result<Pokemon, Error> {
         let name = identifier.to_lowercase();
         let name = name.split('-').next().unwrap_or(&name);
-        
+
         let species_url = format!("{}/pokemon-species/{}", self.base_url, &name);
         let species_res = reqwest::get(&species_url).await?.json::<Value>().await?;
 
@@ -91,7 +91,6 @@ impl PokemonClient {
             .unwrap_or("")
             .replace("\n", " ")
             .replace("\u{c}", " ");
-
 
         Ok(Pokemon {
             id: species_res["id"].as_u64().unwrap() as u16,
