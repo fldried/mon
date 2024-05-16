@@ -63,8 +63,8 @@ impl<'a> PokemonDisplay<'a> {
 
         let types_display = types_colored.join(" / ");
 
-        let height_display = format!("{}: {:.1}m", "Height".truecolor(128,128,128), self.pokemon.height.to_string().white());
-        let weight_display = format!("{}: {:.1}kg", "Weight".truecolor(128,128,128), self.pokemon.weight.to_string().white());
+        let height_display = format!("{}: {:}m", "Height".truecolor(128,128,128), self.pokemon.height.to_string().white());
+        let weight_display = format!("{}: {:}kg", "Weight".truecolor(128,128,128), self.pokemon.weight.to_string().white());
 
         let stats_display = join_all(self.pokemon.stats.iter().map(|stat| async {
             let filled_length = ((stat.value as f64 / 255.0) * bar_length as f64).round() as usize;
