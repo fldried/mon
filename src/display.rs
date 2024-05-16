@@ -23,8 +23,14 @@ impl<'a> PokemonDisplay<'a> {
 
     async fn get_colorscript(&self) -> Result<Vec<String>, reqwest::Error> {
         let suffix = if self.shiny { "shiny" } else { "regular" };
-        let url = format!("https://gitlab.com/phoneybadger/pokemon-colorscripts/-/raw/main/colorscripts/small/{}/{}", suffix, self.pokemon.name.to_lowercase());
-        let res = reqwest::get(&url).await?;
+        let name = self.pokemon.name.to_lowercase();
+        // let name = name.split('-').next().unwrap_or(&name);
+        let url = format!("https://gitlab.com/phoneybadger/pokemon-colorscripts/-/raw/main/colorscripts/small/{}/{}", suffix, name);
+        let mut res = reqwest::get(&url).await?;
+
+        if !res.status().is_success() {
+            res = reqwest::get(&format!("https://gitlab.com/phoneybadger/pokemon-colorscripts/-/raw/main/colorscripts/small/{}/{}", suffix, &name.split('-').next().unwrap())).await?;
+        }
         Ok(res.text().await?.lines().map(String::from).collect())
     }
 
@@ -103,6 +109,7 @@ impl<'a> PokemonDisplay<'a> {
             info.remove(4); //index 5, but we removed an element so it's now 4
         }
 
+        println!();
         for (i, line) in colorscript.iter().enumerate() {
             if i >= start_idx && i < start_idx + info.len() {
                 println!("{}\t{}", line, info[i - start_idx]);
@@ -110,7 +117,7 @@ impl<'a> PokemonDisplay<'a> {
                 println!("{}", line);
             }
         }
-
         println!("{}", description_display);
+        println!();
     }
 }

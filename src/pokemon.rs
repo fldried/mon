@@ -61,14 +61,22 @@ impl PokemonClient {
     }
 
     async fn get_pokemon(&self, identifier: &str) -> Result<Pokemon, Error> {
-        let species_url = format!("{}/pokemon-species/{}", self.base_url, identifier);
+        let name = identifier.to_lowercase();
+        let name = name.split('-').next().unwrap_or(&name);
+
+        let species_url = format!("{}/pokemon-species/{}", self.base_url, &name);
         let species_res = reqwest::get(&species_url).await?.json::<Value>().await?;
 
-        let name = species_res["varieties"][0]["pokemon"]["name"].as_str().unwrap().to_string();
+        let pokemon_url = format!("{}/pokemon/{}", self.base_url, identifier.to_lowercase());
+        let mut pokemon_req = reqwest::get(&pokemon_url).await?;
 
-        let pokemon_url = format!("{}/pokemon/{}", self.base_url, name);
-        let pokemon_res = reqwest::get(&pokemon_url).await?.json::<Value>().await?;
+        if !pokemon_req.status().is_success() {
+            pokemon_req = reqwest::get(&format!("{}/pokemon/{}", self.base_url, species_res["id"].to_string())).await?;
+        }
+       
 
+        let pokemon_res = pokemon_req.json::<Value>().await?;
+    
         let flavor_texts = species_res["flavor_text_entries"]
             .as_array()
             .map_or_else(Vec::new, |arr| {
@@ -84,9 +92,10 @@ impl PokemonClient {
             .replace("\n", " ")
             .replace("\u{c}", " ");
 
+
         Ok(Pokemon {
-            id: pokemon_res["id"].as_u64().unwrap() as u16,
-            name: titlecase(&name),
+            id: species_res["id"].as_u64().unwrap() as u16,
+            name: titlecase(&identifier),
             types: pokemon_res["types"].as_array().unwrap().iter().map(|t| {
                 titlecase(t["type"]["name"].as_str().unwrap())
             }).collect(),
